@@ -20,21 +20,24 @@
 
         function startCountdown() {
             const countdownDiv = document.getElementById("countdown");
-            countdownDiv.innerText = `Refreshing in: ${countdown}`;
+            countdownDiv.style.display = "none";
+            console.log(`Refreshing in: ${countdown}`);
             const interval = setInterval(() => {
                 countdown--;
-                countdownDiv.innerText = ``;
+                console.log(`Refreshing in: ${countdown}`); // Log the countdown in console
+        
                 if (countdown === 0) {
                     clearInterval(interval);
                     countdown = 5;
-                    refreshData(); 
+                    refreshData();
                 }
             }, 1000);
         }
 
+
         async function getPrice(pairId) {
             if (!pairId) return 0;
-            const url = `https://api.dexscreener.com/latest/dex/pairs/pulsechain/${pairId}`;
+            const url = `https://api.dexscreener.com/latest/dex/pairs/pulsechain/${pairId}`; 
             try {
                 const response = await fetch(url);
                 const data = await response.json();
