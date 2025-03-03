@@ -27,7 +27,7 @@
                 if (countdown === 0) {
                     clearInterval(interval);
                     countdown = 5;
-                    loadAllContracts();
+                    refreshData(); 
                 }
             }, 1000);
         }
@@ -38,11 +38,7 @@
             try {
                 const response = await fetch(url);
                 const data = await response.json();
-                if (data.pairs && data.pairs.length > 0) {
-                    return parseFloat(data.pairs[0].priceUsd);
-                } else {
-                    return 0;
-                }
+                return data.pairs && data.pairs.length > 0 ? parseFloat(data.pairs[0].priceUsd) : 0;
             } catch (error) {
                 console.error(`Error fetching price for pair ${pairId}:`, error);
                 return 0;
@@ -68,11 +64,7 @@
                     });
 
                     const responseData = await response.json();
-                    if (responseData.result && responseData.result.output) {
-                        values[arg.key] = parseFloat(responseData.result.output[1].value) / 1e18;
-                    } else {
-                        values[arg.key] = 0;
-                    }
+                    values[arg.key] = responseData.result && responseData.result.output ? parseFloat(responseData.result.output[1].value) / 1e18 : 0;
                 } catch (error) {
                     console.error(`Error fetching ${arg.key} for ${contract.name}:`, error);
                     values[arg.key] = 0;
@@ -86,32 +78,65 @@
             updateUI(contract, totalBurn, price, totalValue);
         }
 
+        function animateNumber(element, start, end, duration) {
+            let range = end - start;
+            let startTime = null;
+
+            function step(currentTime) {
+                if (!startTime) startTime = currentTime;
+                let progress = (currentTime - startTime) / duration;
+                let value = start + range * Math.min(progress, 1);
+                element.innerText = value.toLocaleString('en-US', { maximumFractionDigits: 18 });
+                
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                }
+            }
+
+            requestAnimationFrame(step);
+        }
+
         function updateUI(contract, totalBurn, price, totalValue) {
             const resultDiv = document.getElementById(`response-${contract.address}`);
+            
+            // Create elements for animated numbers
             resultDiv.innerHTML = `
-                <strong>Total Burn:</strong> ${totalBurn > 0 ? totalBurn.toLocaleString('en-US', { maximumFractionDigits: 18 }) : "No burn data available"} <br>
-                <strong>Price:</strong> ${price > 0 ? `$${price.toFixed(6)}` : "N/A"} <br>
-                <strong>USD Value:</strong> ${totalValue > 0 ? `$${totalValue.toLocaleString('en-US', { maximumFractionDigits: 2 })}` : "N/A"} <br>
+                <strong>Total Burn:</strong> <span id="burn-${contract.address}">0</span> <br>
+                <strong>Price:</strong> <span id="price-${contract.address}">0</span> <br>
+                <strong>USD Value:</strong> <span id="value-${contract.address}">0</span> <br>
                 <small>Contract: <a href="https://scan.pulsechain.com/address/${contract.address}" target="_blank">${contract.address}</a></small>
+                <br>
+                <a href="https://dexscreener.com/pulsechain/${contract.pairId}" target="_blank">
+                    <button>Chart - DexS</button>
+                </a>
             `;
+
+            // Apply animation to numbers
+            animateNumber(document.getElementById(`burn-${contract.address}`), 0, totalBurn, 1500);
+            animateNumber(document.getElementById(`price-${contract.address}`), 0, price, 1000);
+            animateNumber(document.getElementById(`value-${contract.address}`), 0, totalValue, 1500);
         }
 
         function loadAllContracts() {
             const container = document.getElementById('results');
-            container.innerHTML = ""; // Clear old data before refreshing
             contracts.forEach(contract => {
                 const contractContainer = document.createElement('div');
                 contractContainer.className = "contract-card";
                 contractContainer.innerHTML = `
                     <h3>${contract.name}</h3>
-                    <p id="response-${contract.address}">Fetching data...</p>
+                    <p id="response-${contract.address}">Loading data...</p>
                 `;
 
                 container.appendChild(contractContainer);
                 fetchData(contract);
             });
 
-            startCountdown(); // Restart countdown after data refresh
+            startCountdown();
+        }
+
+        function refreshData() {
+            contracts.forEach(fetchData);
+            startCountdown();
         }
 
         window.onload = loadAllContracts;
@@ -156,25 +181,6 @@
             overflow: hidden;
             word-wrap: break-word;
             white-space: normal;
-        }
-        .contract-card h3 {
-            font-size: 1.2em;
-            margin-bottom: 10px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .contract-card p {
-            font-size: 0.9em;
-            overflow-wrap: break-word;
-            word-break: break-word;
-        }
-        .contract-card small {
-            display: block;
-            margin-top: 5px;
-            font-size: 0.8em;
-            color: gray;
-            word-break: break-word;
         }
     </style>
 </head>
