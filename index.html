@@ -23,7 +23,7 @@
             countdownDiv.innerText = `Refreshing in: ${countdown}`;
             const interval = setInterval(() => {
                 countdown--;
-                countdownDiv.innerText = `Refreshing in: ${countdown}`;
+                countdownDiv.innerText = ``;
                 if (countdown === 0) {
                     clearInterval(interval);
                     countdown = 5;
